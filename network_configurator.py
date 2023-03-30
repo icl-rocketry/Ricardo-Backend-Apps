@@ -64,7 +64,7 @@ class NetworkConfigurationTool(cmd2.Cmd):
         
 
         self.sio.connect('http://' + host + ':' + str(port) + '/',namespaces=['/','/packet','/messages'])
-        self.sio.on('Response',self.on_response_handler,namespace='/packet')  
+        self.sio.on('response',self.on_response_handler,namespace='/packet')  
 
     #setting up socketio client and event handler
 
@@ -73,11 +73,11 @@ class NetworkConfigurationTool(cmd2.Cmd):
         print("I'm connected!")
 
 
-    # @sio.on('Response',namespace='/packet')
+    # @sio.on('response',namespace='/packet')
     def on_response_handler(self,data):
         print(data)
         try:
-            packet = bytes.fromhex(data['Data'])
+            packet = bytes.fromhex(data['data'])
             header = RnpHeader.from_bytes(packet)
         except:
             print("Failed to decode header")

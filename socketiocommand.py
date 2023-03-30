@@ -24,11 +24,11 @@ def connect_error(data):
 def disconnect():
     print("I'm disconnected!")
 
-@sio.on('Response',namespace='/packet')
+@sio.on('response',namespace='/packet')
 def on_response_handler(data):
     print(data)
     try:
-        packet = bytes.fromhex(data['Data'])
+        packet = bytes.fromhex(data['data'])
         header = RnpHeader.from_bytes(packet)
         print(header)
         if header.source_service == 2 and header.packet_type == 100:

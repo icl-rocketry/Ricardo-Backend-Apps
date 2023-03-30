@@ -48,7 +48,7 @@ class CmdUI(cmd2.Cmd):
         self.component_state_request_record = {}
 
         self.sio.connect('http://' + host + ':' + str(port) + '/',namespaces=['/','/packet','/messages'])  
-        self.sio.on('Response',self.on_response_handler,namespace='/packet')  
+        self.sio.on('response',self.on_response_handler,namespace='/packet')  
 
     #setting up socketio client and event handler
 
@@ -59,7 +59,7 @@ class CmdUI(cmd2.Cmd):
     def on_response_handler(self,data):
         print(data)
         try:
-            packet = bytes.fromhex(data['Data'])
+            packet = bytes.fromhex(data['data'])
             header = RnpHeader.from_bytes(packet)
             print(header)
             if header.source_service == 2 and header.packet_type == 100:

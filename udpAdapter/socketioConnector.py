@@ -22,9 +22,9 @@ def connect_error(data):
 def disconnect():
     print("Socketio Disconnected!")
 
-@sio.on('Response',namespace='/packet')
+@sio.on('response',namespace='/packet')
 def on_response_handler(data):
-    packet = bytes.fromhex(data['Data'])
+    packet = bytes.fromhex(data['data'])
     if verbose:
         print(packet.hex())
     
