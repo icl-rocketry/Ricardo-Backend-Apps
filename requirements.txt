@@ -1,0 +1,12 @@
+cmd2
+cobs
+python-socketio
+matplotlib
+numpy
+pandas
+pygame
+PyOpenGL
+pyserial
+requests
+scipy
+urwid
