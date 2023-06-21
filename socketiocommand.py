@@ -48,13 +48,15 @@ def on_error_handler(data):
     print(data)
 
 
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", required=False, help="backend host", type=str,default = "localhost")
     ap.add_argument("--port", required=False, help="backend port", type=int,default = 1337)
     args = vars(ap.parse_args())
 
-    sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/telemetry','/packet','/messages'])
+    sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/telemetry','/packet'])
 
     while True:
         source = input("source node : ")

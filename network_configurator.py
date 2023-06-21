@@ -41,6 +41,7 @@ class NETMAN_TYPES(enum.Enum):
     SET_ROUTEGEN:int = 7
     SAVE_CONF:int = 8
     RESET_NETMAN:int = 9
+    NODEINFO:int = 254
 
 #reference rnp_networkmanager.h
 class NODE_TYPE(enum.Enum):
@@ -87,7 +88,14 @@ class NetworkConfigurationTool(cmd2.Cmd):
         if header.packet_type == 2:
             self.ping_response_handler(packet)
             # ping response
-            
+        if header.packet_type == 100:
+            #we have a string message packet
+            packet_body = packet[RnpHeader.size:]
+            try:
+                message = packet_body.decode('UTF-8')
+            except:
+                message = str(packet_body)
+            print("Message: " + message)   
                 
                 
 
@@ -176,6 +184,13 @@ class NetworkConfigurationTool(cmd2.Cmd):
     def do_reset(self,opts):
         packet = ByteRnpPacket()
         self.send_packet(packet,destination=opts.current_address,packet_type=NETMAN_TYPES.RESET_NETMAN.value)
+
+    nodeinfo_ap = Cmd2ArgumentParser()
+    nodeinfo_ap.add_argument('-a','--current_address',type=int,help='Node Current Address',default=0)
+    @with_argparser(nodeinfo_ap)
+    def do_nodeinfo(self,opts):
+        packet = ByteRnpPacket()
+        self.send_packet(packet,destination=opts.current_address,packet_type=NETMAN_TYPES.NODEINFO.value)
 
 
     @sio.event
@@ -285,7 +300,7 @@ class NetworkConfigurationTool(cmd2.Cmd):
     
 
 ap = argparse.ArgumentParser()
-ap.add_argument('-s',"--source",required=False,type=int,default=4,help='Soure Address of packets')
+ap.add_argument('-s',"--source",required=False,type=int,default=4,help='Source Address of packets')
 
 args = vars(ap.parse_args())
 

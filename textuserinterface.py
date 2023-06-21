@@ -50,6 +50,7 @@ flag_lookup[29] = ['flightphase','MAIN CHUTE']
 
 
 
+
 #loading screen view
 class LoadingView(urwid.WidgetWrap):
     def __init__(self):

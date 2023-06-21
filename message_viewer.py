@@ -3,7 +3,7 @@ import socketio
 import argparse
 import json
 
-sio = socketio.Client(logger=False, engineio_logger=False)
+sio = socketio.Client(logger=True, engineio_logger=True)
 
 @sio.on('new_message',namespace='/messages')
 def on_message_handler(data):
