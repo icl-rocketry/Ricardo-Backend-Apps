@@ -11,34 +11,24 @@ import math
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
-import redis
 import json
 import time
 import argparse
+import socketio
 
 ap = argparse.ArgumentParser()
-ap.add_argument( "--port", required=False, help="Redis port", type=int, default=6379)
+ap.add_argument( "--port", required=False, help="Redis port", type=int, default=1337)
 ap.add_argument("--host", required=False, help="Redis host", type=str, default="localhost")
 args = vars(ap.parse_args())
 
-# useSerial = False # set true for using serial for data transmission, false for wifi
+
 useQuat = True   # set true for using quaternions, false for using y,p,r angles
 
-# if(useSerial):
-#     import serial
-#     ser = serial.Serial('/dev/ttyUSB0', 38400)
-# else:
-#     import socket
 
-#     UDP_IP = "0.0.0.0"
-#     UDP_PORT = 5005
-#     sock = socket.socket(socket.AF_INET, # Internet
-#                          socket.SOCK_DGRAM) # UDP
-#     sock.bind((UDP_IP, UDP_PORT))
-
-r = redis.Redis(args["host"],args["port"])
+sio = socketio.Client(logger=False, engineio_logger=False)
 
 def main():
+    
     video_flags = OPENGL | DOUBLEBUF
     pygame.init()
     screen = pygame.display.set_mode((640, 480), video_flags)
@@ -47,20 +37,33 @@ def main():
     init()
     frames = 0
     ticks = pygame.time.get_ticks()
+
+    w = 1
+    nx = 0
+    ny = 0
+    nz = 0
+
+
+    @sio.on('fc_telemetry', namespace='/telemetry')
+    def read_data(data):
+        nonlocal w
+        nonlocal nx
+        nonlocal ny
+        nonlocal nz
+
+        [w, nx, ny, nz] = handle_data(data)
+    
+    sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/')
+
     while 1:
         event = pygame.event.poll()
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             break
         if(useQuat):
-            [w, nx, ny, nz] = read_data()
-        else:
-            [yaw, pitch, roll] = read_data()
-        if(useQuat):
             draw(w, nx, ny, nz)
-        else:
-            draw(1, yaw, pitch, roll)
+
         pygame.display.flip()
-        frames += 1
+        frames += 1 
     print("fps: %d" % ((frames*1000)/(pygame.time.get_ticks()-ticks)))
     # if(useSerial):
     #     ser.close()
@@ -109,20 +112,8 @@ def cleanSerialBegin():
             pass
 
 
-def read_data():
-    # if(useSerial):
-    #     ser.reset_input_buffer()
-    #     cleanSerialBegin()
-    #     line = ser.readline().decode('UTF-8').replace('\n', '')
-    #     print(line)
-    # elif(useUDP):
-    #     # Waiting for data from udp port 5005
-    #     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-    #     line = data.decode('UTF-8').replace('\n', '')
-    #     print(line)
-    # elif (useRedis):
-    
-    data = r.get("telemetry:fc_telemetry")
+
+def handle_data(data):
     print(data)
     try:
         telemetry = json.loads(data)
@@ -143,7 +134,7 @@ def read_data():
     time.sleep(0.01)
     #return [yaw,pitch,roll]
     return [w, nx, ny, nz]
-                
+
     # if(useQuat):
     #     w = float(line.split('w')[1])
     #     nx = float(line.split('a')[1])
