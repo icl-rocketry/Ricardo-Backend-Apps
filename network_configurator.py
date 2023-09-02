@@ -61,10 +61,17 @@ class NetworkConfigurationTool(cmd2.Cmd):
         super().__init__(allow_cli_args=False)  
 
         self.source_address = 4
+        self.source_service = 2
         self.ping_record = {}
         
+        while True:
+            try:
+                self.sio.connect('http://' + host+ ':' + str(port) + '/',namespaces=['/','/packet','/messages'])
+                break
+            except socketio.exceptions.ConnectionError:
+                print('Server not found, attempting to reconnect!')
+                time.sleep(1)
 
-        self.sio.connect('http://' + host + ':' + str(port) + '/',namespaces=['/','/packet','/messages'])
         self.sio.on('response',self.on_response_handler,namespace='/packet')  
 
     #setting up socketio client and event handler
@@ -118,6 +125,8 @@ class NetworkConfigurationTool(cmd2.Cmd):
     @with_argparser(set_address_ap)
     def do_set_address(self,opts):
         print(opts)
+        print(opts.current_address)
+    
         # pass
         packet = ByteRnpPacket()
         packet.value = opts.new_address
@@ -202,8 +211,8 @@ class NetworkConfigurationTool(cmd2.Cmd):
         print("I'm disconnected!")
 
     #method for serializing and sending command and its argument
-    def send_packet(self,packet,destination,source=None,destination_service = 1,source_service  = 2,packet_type = 0):
-        packet.header.source_service = source_service
+    def send_packet(self,packet,destination,source=None,destination_service = 1,packet_type = 0):
+        packet.header.source_service = self.source_service
         packet.header.destination_service = destination_service
 
         if (source is None):
@@ -301,11 +310,15 @@ class NetworkConfigurationTool(cmd2.Cmd):
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-s',"--source",required=False,type=int,default=4,help='Source Address of packets')
+ap.add_argument('--port',required=False,type=int,default=1337,help='Port of backend')
+ap.add_argument('--host',required=False,type=str,default='localhost',help='host of backend')
+ap.add_argument('--service',required=False,type=int,default=2,help='source service')
 
 args = vars(ap.parse_args())
 
 
 if __name__ == "__main__":
-    netconf = NetworkConfigurationTool()
+    netconf = NetworkConfigurationTool(host=args['host'],port=args['port'])
     netconf.source_address = args['source']
+    netconf.source_service = args['service']
     netconf.cmdloop()

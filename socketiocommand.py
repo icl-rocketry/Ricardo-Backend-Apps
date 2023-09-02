@@ -54,9 +54,18 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", required=False, help="backend host", type=str,default = "localhost")
     ap.add_argument("--port", required=False, help="backend port", type=int,default = 1337)
+    ap.add_argument("--service", required=False, help="Source Service", type=int,default = 1)
     args = vars(ap.parse_args())
 
-    sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/telemetry','/packet'])
+    while True:
+        try:
+            sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/messages','/telemetry','/packet'])
+            break
+        except socketio.exceptions.ConnectionError:
+            print('Server not found, attempting to reconnect!')
+            sio.sleep(1)
+
+    
 
     while True:
         source = input("source node : ")
@@ -68,7 +77,7 @@ if __name__ == "__main__":
         arg = input("arg : ")
         cmd_packet :SimpleCommandPacket= SimpleCommandPacket(command = int(command_num), arg = int(arg))
         cmd_packet.header.destination_service = int(destination_service)
-        cmd_packet.header.source_service = 1
+        cmd_packet.header.source_service = args['service']
         cmd_packet.header.source = int(source)
         cmd_packet.header.destination = int(destination)
         cmd_packet.header.packet_type = 0
