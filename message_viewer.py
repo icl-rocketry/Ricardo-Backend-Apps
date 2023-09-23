@@ -2,13 +2,14 @@
 import socketio
 import argparse
 import json
+import time
 
 sio = socketio.Client(logger=False, engineio_logger=False)
 
 @sio.on('new_message',namespace='/messages')
 def on_message_handler(data):
     head = data["header"]
-    prefix:str = "[" + str(head["source"]) + ":" + str(head["source_service"]) + " -> " + str(head["destination"]) + ":" + str(head["destination_service"]) +"] "
+    prefix:str = "[" + str(head["source"]) + ":" + str(head["source_service"]) + " -> " + str(head["destination"]) + ":" + str(head["destination_service"]) + " - " + str(time.time()) + " ] "
     print(prefix + str(data["message"]))
 
 
