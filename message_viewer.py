@@ -22,7 +22,8 @@ if __name__ == "__main__":
     while True:
         try:
             sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/messages'])
-            break
-        except socketio.exceptions.ConnectionError:
+            sio.wait()
+        except socketio.exceptions.ConnectionError as e:
             print('Server not found, attempting to reconnect!')
             sio.sleep(1)
+        
