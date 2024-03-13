@@ -51,7 +51,14 @@ def main():
         nonlocal ny
         nonlocal nz
 
-        [w, nx, ny, nz] = handle_data(data)
+        telemetryJson:dict = json.loads(data)
+        telemetryFrame = telemetryJson
+        try: # this is to handle if someone is using an older version of the backend i.e before ()
+            telemetryFrame = telemetryJson["data"] 
+        except KeyError:
+            pass
+
+        [w, nx, ny, nz] = handle_data(telemetryFrame)
     
     sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/')
 
@@ -113,10 +120,9 @@ def cleanSerialBegin():
 
 
 
-def handle_data(data):
-    print(data)
+def handle_data(telemetry):
+    print(telemetry)
     try:
-        telemetry = json.loads(data)
         w = telemetry['q0']
         nx = telemetry['q1']
         ny = telemetry['q2']

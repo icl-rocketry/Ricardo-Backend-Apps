@@ -34,7 +34,13 @@ def startNetworkedMagCalApp(msgQ,
 
     @sio.on('fc_telemetry',namespace='/telemetry')
     def on_telemetry(data):  
-        magcal.updateData(json.loads(data))
+        telemetryJson:dict = json.loads(data)
+        telemetryFrame = telemetryJson
+        try: # this is to handle if someone is using an older version of the backend i.e before ()
+            telemetryFrame = telemetryJson["data"] 
+        except KeyError:
+            pass
+        magcal.updateData(telemetryFrame)
 
     magcal.run()
 
