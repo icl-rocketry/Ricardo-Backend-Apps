@@ -53,7 +53,7 @@ def main():
 
         telemetryJson:dict = json.loads(data)
         telemetryFrame = telemetryJson
-        try: # this is to handle if someone is using an older version of the backend i.e before ()
+        try: # this is to handle if someone is using an older version of the backend i.e before (1d44d1c11496fd8917c51f371d8757fff1591a6c)
             telemetryFrame = telemetryJson["data"] 
         except KeyError:
             pass
