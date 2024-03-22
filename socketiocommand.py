@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     while True:
         try:
-            sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/messages','/telemetry','/packet'])
+            sio.connect('http://' + args["host"] + ':' + str(args['port']) + '/',namespaces=['/','/telemetry','/packet'])
             break
         except socketio.exceptions.ConnectionError:
             print('Server not found, attempting to reconnect!')
