@@ -66,7 +66,7 @@ class NetworkConfigurationTool(cmd2.Cmd):
         
         while True:
             try:
-                self.sio.connect('http://' + host+ ':' + str(port) + '/',namespaces=['/','/packet','/messages'])
+                self.sio.connect('http://' + host+ ':' + str(port) + '/',namespaces=['/','/packet'])
                 break
             except socketio.exceptions.ConnectionError:
                 print('Server not found, attempting to reconnect!')
