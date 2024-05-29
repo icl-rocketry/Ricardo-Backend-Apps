@@ -61,9 +61,9 @@ class RedlineCalibration(RnpPacket):
         self.limit:float = limit
 
         super().__init__(list(vars(self).keys()),
-                         PTapCalibration.struct_str,
-                         PTapCalibration.size,
-                         PTapCalibration.packet_type)
+                         RedlineCalibration.struct_str,
+                         RedlineCalibration.size,
+                         RedlineCalibration.packet_type)
 
     def __str__(self):
         header_str = self.header.__str__() + "\n"
