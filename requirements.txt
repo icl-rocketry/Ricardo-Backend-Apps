@@ -10,3 +10,4 @@ pyserial
 requests
 scipy
 urwid
+websocket-client
