@@ -48,6 +48,17 @@ def on_error_handler(data):
     print(data)
 
 
+def get_valid_input(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            if 0 <= value <= 255:
+                return value
+            else:
+                print("Error: Please enter a number between 0 and 255.")
+        except ValueError:
+            print("Error: Invalid input. Please enter a number between 0 and 255.")
+
 
 
 if __name__ == "__main__":
@@ -68,13 +79,13 @@ if __name__ == "__main__":
     
 
     while True:
-        source = input("source node : ")
+        source = get_valid_input("source node : ")
         while not source:
-            source = input("source node : ")
-        destination = input("destination node : ")
-        destination_service = input("destination service : ")
-        command_num = input("command id : ")
-        arg = input("arg : ")
+            source = get_valid_input("source node : ")
+        destination = get_valid_input("destination node : ")
+        destination_service = get_valid_input("destination service : ")
+        command_num = get_valid_input("command id : ")
+        arg = get_valid_input("arg : ")
         cmd_packet :SimpleCommandPacket= SimpleCommandPacket(command = int(command_num), arg = int(arg))
         cmd_packet.header.destination_service = int(destination_service)
         cmd_packet.header.source_service = args['service']
