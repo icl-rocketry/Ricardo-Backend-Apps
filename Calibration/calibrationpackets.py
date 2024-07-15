@@ -51,14 +51,15 @@ class PTapCalibration(RnpPacket):
 class RedlineCalibration(RnpPacket):
     '''Calibration packet for redline monitor limits.'''
 	
-    struct_str = '<Bf'
+    struct_str = '<Bff'
     size = struct.calcsize(struct_str)
     packet_type = 109
 
-    def __init__(self, command: int = 5, limit: float = 0):
+    def __init__(self, command: int = 5, val_limit: float = 0, grad_limit: float = 0):
 
         self.command:int = command
-        self.limit:float = limit
+        self.value_limit:float = val_limit
+        self.gradient_limit:float = grad_limit
 
         super().__init__(list(vars(self).keys()),
                          RedlineCalibration.struct_str,
@@ -67,5 +68,5 @@ class RedlineCalibration(RnpPacket):
 
     def __str__(self):
         header_str = self.header.__str__() + "\n"
-        param_str = f'REDLINE PACKET BODY: \tcommand = {self.command}\n \t\t\t limit = {self.limit} \n'
+        param_str = f'REDLINE PACKET BODY: \tcommand = {self.command}\n \t\t\t limit = {self.value_limit} \n \t\t\t grad_limit = {self.gradient_limit} \n'
         return header_str + param_str

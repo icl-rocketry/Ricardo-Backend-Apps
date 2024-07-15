@@ -65,8 +65,9 @@ if __name__ == "__main__":
             source = input("source node : ")
         destination = input("destination node : ")
         destination_service = input("destination service : ")
-        limit = input("limit: ")
-        cmd_packet = RedlineCalibration(command = 5, limit = float(limit))
+        value_limit = input("value limit: ")
+        gradient_limit = input("gradient limit: ")
+        cmd_packet = RedlineCalibration(command = 5, val_limit = float(value_limit), grad_limit = float(gradient_limit))
         cmd_packet.header.destination_service = int(destination_service)
         cmd_packet.header.source_service = 1
         cmd_packet.header.source = int(source)
