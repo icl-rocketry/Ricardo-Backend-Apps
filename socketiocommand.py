@@ -48,7 +48,7 @@ def on_error_handler(data):
     print(data)
 
 
-def get_valid_input(prompt):
+def get_valid_input_uint8(prompt):
     while True:
         try:
             value = int(input(prompt))
@@ -58,6 +58,17 @@ def get_valid_input(prompt):
                 print("Error: Please enter a number between 0 and 255.")
         except ValueError:
             print("Error: Invalid input. Please enter a number between 0 and 255.")
+
+def get_valid_input_int32(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            if -2**31-1 <= value <= 2**31 - 1:
+                return value
+            else:
+                print("Error: Please enter a number between -2,147,483,647 and 2,147,483,647.")
+        except ValueError:
+            print("Error: Invalid input. Please enter a number between -2,147,483,647 and 2,147,483,647.")
 
 
 
@@ -79,13 +90,13 @@ if __name__ == "__main__":
     
 
     while True:
-        source = get_valid_input("source node : ")
+        source = get_valid_input_uint8("source node : ")
         while not source:
-            source = get_valid_input("source node : ")
-        destination = get_valid_input("destination node : ")
-        destination_service = get_valid_input("destination service : ")
-        command_num = get_valid_input("command id : ")
-        arg = get_valid_input("arg : ")
+            source = get_valid_input_uint8("source node : ")
+        destination = get_valid_input_uint8("destination node : ")
+        destination_service = get_valid_input_uint8("destination service : ")
+        command_num = get_valid_input_uint8("command id : ")
+        arg = get_valid_input_int32("arg : ")
         cmd_packet :SimpleCommandPacket= SimpleCommandPacket(command = int(command_num), arg = int(arg))
         cmd_packet.header.destination_service = int(destination_service)
         cmd_packet.header.source_service = args['service']
