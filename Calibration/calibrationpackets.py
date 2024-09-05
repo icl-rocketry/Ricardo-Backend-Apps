@@ -4,16 +4,20 @@ from pylibrnp.rnppacket import RnpPacket
 
 class ServoCalibration(RnpPacket):
     '''Servo calibration packet. Minimum and maximum angle define the servo allowed bounds, home angle defines the position the servo returns to by default (i.e. on power-up).'''
-    struct_str = '<BHHH'
+    struct_str = '<BHHHHHHH'
     size = struct.calcsize(struct_str)
     packet_type = 105
 
-    def __init__(self, command: int = 5, angl_min: int = 0, angl_max: int = 180, home_angl: int = 0):
+    def __init__(self, command: int = 5, defaultAngle: int = 0, minAngle: int = 0, maxAngle: int = 180, minWidth: int = 500, maxWidth: int = 2500, minAngleLimit: int = 0, maxAngleLimit: int = 0):
 
         self.command:int = command
-        self.angl_min:int = angl_min
-        self.angl_max:int = angl_max
-        self.home_angl:int = home_angl
+        self.defaultAngle = defaultAngle
+        self.minAngle = minAngle
+        self.maxAngle = maxAngle
+        self.minWidth = minWidth
+        self.maxWidth = maxWidth
+        self.minAngleLimit = minAngleLimit
+        self.maxAngleLimit = maxAngleLimit
 
         super().__init__(list(vars(self).keys()),
                          ServoCalibration.struct_str,

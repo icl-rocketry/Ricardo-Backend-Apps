@@ -65,15 +65,15 @@ if __name__ == "__main__":
             source = input("source node : ")
         destination = input("destination node : ")
         destination_service = input("destination service : ")
-        angl_min = input("angl_min: ")
-        angl_max = input("angl_max: ")
-        home_angl = input("home_angl: ")
-        cmd_packet = ServoCalibration(command = 5, angl_min = int(angl_min), angl_max = int(angl_max), home_angl = int(home_angl))
+        min_limit = input("Minimum angle limit: ")
+        max_limit = input("Maximum angle limit: ")
+        default = input("Default Angle: ")
+        cmd_packet = ServoCalibration(command = 5, defaultAngle = int(default), minAngle = 0, maxAngle = 180, minWidth = 500, maxWidth = 2500, minAngleLimit = int(min_limit), maxAngleLimit = int(max_limit))
         cmd_packet.header.destination_service = int(destination_service)
         cmd_packet.header.source_service = 1
         cmd_packet.header.source = int(source)
         cmd_packet.header.destination = int(destination)
-        cmd_packet.header.packet_type = 107
+        cmd_packet.header.packet_type = 105
         serializedPacket:str = cmd_packet.serialize().hex()
         sio.emit('send_data',{'data':serializedPacket},namespace='/packet')
     
