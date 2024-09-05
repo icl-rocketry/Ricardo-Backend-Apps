@@ -4,7 +4,7 @@ from pylibrnp.rnppacket import RnpPacket
 
 class ServoCalibration(RnpPacket):
     '''Servo calibration packet. Minimum and maximum angle define the servo allowed bounds, home angle defines the position the servo returns to by default (i.e. on power-up).'''
-    struct_str = '<BHHHHHHH'
+    struct_str = '<BIIIIIII'
     size = struct.calcsize(struct_str)
     packet_type = 105
 
