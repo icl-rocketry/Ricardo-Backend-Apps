@@ -74,3 +74,25 @@ class RedlineCalibration(RnpPacket):
         header_str = self.header.__str__() + "\n"
         param_str = f'REDLINE PACKET BODY: \tcommand = {self.command}\n \t\t\t limit = {self.value_limit} \n \t\t\t grad_limit = {self.gradient_limit} \n'
         return header_str + param_str
+
+
+class SolenoidCalibration(RnpPacket):
+    '''Solenoid calibration packet.'''
+    struct_str = '<BH'
+    size = struct.calcsize(struct_str)
+    packet_type = 115
+
+    def __init__(self, command: int = 5, normal_state: int = 0):
+
+        self.command:int = command
+        self.normal_state:int = normal_state
+        
+        super().__init__(list(vars(self).keys()),
+                         SolenoidCalibration.struct_str,
+                         SolenoidCalibration.size,
+                         SolenoidCalibration.packet_type)
+
+    def __str__(self):
+        header_str = self.header.__str__() + "\n"
+        param_str = f'SOLENOID CALIBRATION PACKET BODY: \tcommand = {self.command}\n \t\t\normal state = {self.normal_state} \n'
+        return header_str + param_str
