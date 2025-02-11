@@ -96,3 +96,30 @@ class SolenoidCalibration(RnpPacket):
         header_str = self.header.__str__() + "\n"
         param_str = f'SOLENOID CALIBRATION PACKET BODY: \tcommand = {self.command}\n \t\t\normal state = {self.normal_state} \n'
         return header_str + param_str
+
+class PIDCalibration(RnpPacket):
+    '''PID calibration packet. Gains organised row major'''
+    struct_str = '<Bffffff'
+    size = struct.calcsize(struct_str)
+    packet_type = 119
+
+    def __init__(self, command: int = 5, k11: float = 0, k12: float = 0, k13: float = 0, k14: float = 0, k15: float = 0, k16: float = 0):
+
+        self.command:int = command
+        self.k11 = k11
+        self.k12 = k12
+        self.k13 = k13
+        self.k14 = k14
+        self.k15 = k15
+        self.k16 = k16
+ 
+
+        super().__init__(list(vars(self).keys()),
+                         PIDCalibration.struct_str,
+                         PIDCalibration.size,
+                         PIDCalibration.packet_type)
+
+    def __str__(self):
+        header_str = self.header.__str__() + "\n"
+        param_str = f'PID CALIBRATION PACKET BODY: \tcommand = {self.command}\n'
+        return header_str + param_str
