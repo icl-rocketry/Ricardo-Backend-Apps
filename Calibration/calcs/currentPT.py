@@ -12,8 +12,8 @@ minCounts = ADCMaxCounts * (minI * sensR)/ADCMaxV
 maxCounts = ADCMaxCounts * (maxI * sensR)/ADCMaxV
 
 m = (maxCounts - minCounts)/(PTmax)
-zeroReading  = 1396573 #adc channel reading at ambient pressure with PT plugged in
+zeroReading  = -1415250 #adc channel reading at ambient pressure with PT plugged in
 c = zeroReading - 1.0135 * m #for absolute pressure instead of gauge
 
-print(c)
-print(m)
+print("Constant: " + str(c))
+print("Gradient: " + str(m))
