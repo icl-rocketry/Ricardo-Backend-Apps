@@ -1,7 +1,8 @@
 from pylibrnp.defaultpackets import *
 from pylibrnp.rnppacket import *
-import socketio
+from hitlpackets import * 
 
+import socketio
 import socket
 import threading
 
@@ -13,7 +14,7 @@ def connect():
     print("I'm connected to the backend!")
 
 @sio_backend.event()
-def connect_error(data):
+def connect_error(_):
     print("Connection failed to backend")
 
 @sio_backend.event()
@@ -23,14 +24,9 @@ def disconnect():
 @sio_backend.on('response', namespace='/packet') #type: ignore
 def backend_response_handler(data):
     print("Response recieved from backend")
-    print(data)
-    try:
-        packet = bytes.fromhex(data['data'])
-        header = RnpHeader.from_bytes(packet)
-        print(header)
-    except:
-        print("Failed to decode header")
-    send_packet_to_simulator("Very sensative data")
+    packet = bytes.fromhex(data['data'])
+    process_and_send_to_simulator(packet)
+
 
 @sio_backend.on('Error',namespace='/packet') #type: ignore
 def backend_general_error_handler(data):
@@ -38,107 +34,125 @@ def backend_general_error_handler(data):
     print(data)
 
 
-def simulator_response_loop(sock):
-    while True:
-        try:
-            data = sock.recv(struct.calcsize(packet_from_sim_format))
-            print("Recieved: ", data.decode('utf-8'))
-            send_packet_to_board("IMPORTANT DATA")
-        except Exception as e:
-            print("Error in response loop:", e)
-            break;
-
+#__________________________________________________________________________________
 #THIS SECTION CONCERNS THE CONNECTION TO THE SIMULATOR
 open_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-packet_from_sim_format = "<HdQ3d3dd3d3dd8d8dd"
-def send_packet_to_simulator(data):
+
+#These need to be set manually if the format of the simulator structures are changed!
+
+#Ran by a thread dedicated to waiting for simulator actions and sending the data to the backend
+def simulator_response_loop(sock):
+    while True:
+            data = sock.recv(simInPacket.size)
+            process_and_send_sensor_data(data)
+
+#These should be maintained within this adaptor program
+'''SETUP - This is maintained thread safe such that multiple inbound packets can be processed concurrently'''
+setuplock = threading.Lock() # basic lock to protect date (if performance becomes a greater concern then an alternative data type should be used for stored_actuators
+toSimPacket:simInPacket = simInPacket()
+toSimPacket.version = 0x0010
+toSimPacket.actuators = [0.0 for _ in range(32)]
+toSimPacket.dt = 0
+toSimPacket.frame = 0
+
+
+#Recieves actuator data from the board and processes appropriately
+def process_and_send_to_simulator(packet):
     print("Sending data packet to simulator")
-    format = "<HdQ32d"
 
-    if(len(data)) == struct.calcsize(format):
-        version_,dt_,frame_,actuators_ = struct.unpack(format,data)
-        print("Version: ",version_, " dt:",dt_," frame:",frame_," actuators:", actuators_)
-    #TODO ERROR HANDLING
+    header = RnpHeader.from_bytes(packet)
+
+#Handle recieved packet according to the packet origin board
+    match header.packet_type:
+        case 1:
+            print("packet recived from pickle rick board")
+            #FILL ANY DATA RECIEVED HERE
+            setuplock.acquire()
+            actuators = [0.0 for _ in range(32)]
+            setuplock.release()
+
+            #Stand in for updating the stored actuators
+            toSimPacket.actuators = actuators
+
+        case _:
+            print("Unknown packet recieved by the adaptor from hardware")
+            return
     
-    version = 0x0010
-    dt = 0
-    frame = 0
-    actuators = ([0]*32)
-    sending_data = struct.pack(format,version,dt,frame,*actuators)
-
+    setuplock.acquire()
+    sending_data = struct.pack(simInPacket.struct_str,toSimPacket.version,toSimPacket.dt,toSimPacket.frame,*actuators)
+    setuplock.release()
     open_socket.send(sending_data)
+
+#Accepts vals which is of the form of the unpacked C++ struct
+def send_packet_to_pickle_rick(packet:simOutPacket):
+    pickleRickSensorsPacket:PickleRickSensorsPacket = PickleRickSensorsPacket()
+    pickleRickSensorsPacket.accelgyro_gyro = packet.gyroscope 
+    pickleRickSensorsPacket.accelerometer = packet.accelerometer
+    pickleRickSensorsPacket.barometer = [packet.barometer]*3
+    pickleRickSensorsPacket.gps_pos = packet.gps_pos[0:2]
+    pickleRickSensorsPacket.gps_vel = [int(x) for x in packet.gps_vel]
+    pickleRickSensorsPacket.gps_pdop = int(packet.gps_pdop)
+
+    ''' Other Pieces of data 0 by default at this point in time '''
+ 
+    #Direct packet to the PickleRickBoard
+    pickleRickSensorsPacket.header.destination_service = 3
+    pickleRickSensorsPacket.header.source_service = 0
+    pickleRickSensorsPacket.header.source = 1
+    pickleRickSensorsPacket.header.destination = 0
+    pickleRickSensorsPacket.header.packet_type = 1
+
+    #Serialize and send the packet over the socketio connection to the backend
+    serializedPacket:str = pickleRickSensorsPacket.serialize().hex()
+    sio_backend.emit('send_data',{'data':serializedPacket}, namespace='/packet')
+
     
+#Accepts data of the form of the c++ structure used by the simulator program
+def process_and_send_sensor_data(data):
+    vals = struct.unpack(simOutPacket.struct_str,data)
+    packet:simOutPacket = simOutPacket(vals)
+    if(vals[0] != toSimPacket.version): return #Ensure that the version of the packets being sent and recieved with the simulator are correct to ensure that they are operating on the same version
 
-def send_packet_to_board(data):
+#Send data to all relevent boards
+    send_packet_to_pickle_rick(packet)
 
-    format = packet_from_sim_format
-
-    if len(data) == struct.calcsize(format):
-        buff_ = bytes(struct.calcsize(format))
-        vals = struct.unpack(format,buff_)
-        version = vals[0]
-        timestamp = vals[1]
-        frame = vals[2]
-        gyroscope = vals[3:6]
-        accelerometer = vals[6:9]
-        barometer = vals[9]
-        gps_pos = vals[10:13]
-        gps_vel = vals[13:16]
-        gps_pdop = vals[16]
-        pressures = vals[17:25]
-        temperature = vals[25:33]
-        battery = vals[34]
-
-        print(version,timestamp,frame,gyroscope,accelerometer,barometer,gps_pos,gps_vel,gps_pdop,pressures,temperature,battery)
-    
-    #TODO() handle error cases
-    print("Sending data packet to board___________________")
-    packet:SimpleCommandPacket = SimpleCommandPacket(8, 0)
-    packet.header.destination_service = 2
-    packet.header.source_service = 1
-    packet.header.source = 1
-    packet.header.destination = 0
-    packet.header.packet_type = 0
-    serializedPacket:str = packet.serialize().hex()
-    print("[DEBUG] emitting signal")
-    sio_backend.emit('send_data',{'data':serializedPacket},namespace='/packet')
+    #INSERT OTHER BOARDS DATA HERE
 
 
 
-#If this function was ran directly
 if __name__ == "__main__":
 
     backend_port = 1337
     backend_host = "localhost"
     backend_source_service = 1
 
-    #connect to the Ricardo-Backend on port 1337 on localhost
-    while True:
-        try:
-            sio_backend.connect('http://' + backend_host + ':' + str(backend_port) + '/',namespaces=['/','/telemetry','/packet'])
-            break
-        except socketio.exceptions.ConnectionError:  #type: ignore
-            print('Server not found, attempting to reconnect!')
-            sio_backend.sleep(1)
-            # Try every second to connect to the Server
-
+#Connect to the Ricardo-Backend on port 1337 on localhost
+    sio_backend.connect('http://' + backend_host + ':' + str(backend_port) + '/',namespaces=['/','/telemetry','/packet'])
     print("Connected to backend")
-    #We have successfully connected to the Ricardo-Backend
 
-    #Connect to the simulator by sending an empty control frame 
+#Enable HITL
+    cmd_packet :SimpleCommandPacket= SimpleCommandPacket(command = 0, arg = 0)
+    cmd_packet.header.destination_service = 3
+    cmd_packet.header.source_service = 0
+    cmd_packet.header.source = 1
+    cmd_packet.header.destination = 0
+    cmd_packet.header.packet_type = 0
+    serializedPacket:str = cmd_packet.serialize().hex()
+    sio_backend.emit('send_data',{'data':serializedPacket},namespace='/packet')
 
+
+
+#Connect to the simulator
     simulator_listening_port = 10550
+    udp_ITL_listening_port = 10551
     local_host = "127.0.0.1" #Loopback IP address
 
-    udp_TIL_listening_port = 10551
-
     open_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    open_socket.bind((local_host,udp_TIL_listening_port))
+    open_socket.bind((local_host,udp_ITL_listening_port))
     open_socket.connect((local_host,simulator_listening_port))
-
     threading.Thread(target=simulator_response_loop,args=(open_socket,), daemon=False).start()
 
-    
-    print("Sending initial contact")
-    open_socket.send(b"Connecting to simulator (pretend this is an empty frame")
+#DEBUG
+    print("Sending contact to the simulator")
+    open_socket.send(b"Debug message from udp_ITL_client")
                      
