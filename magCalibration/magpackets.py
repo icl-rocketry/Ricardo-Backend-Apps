@@ -4,13 +4,12 @@ from pylibrnp.rnppacket import *
 
 class MagCalCommand(RnpPacket):
 	
-	struct_str = '<Bfffffffffffffff'
+	struct_str = '<Bffffffffffff'
 	size = struct.calcsize(struct_str)
 	packet_type = 10
 
 	def __init__(self,
 				command:int = 0,
-				fieldMagnitude:float=0,inclination:float=0,declination:float=0,
 				A11:float=0,A12:float=0,A13:float=0,
 				A21:float=0,A22:float=0,A23:float=0,
 				A31:float=0,A32:float=0,A33:float=0,
@@ -19,9 +18,6 @@ class MagCalCommand(RnpPacket):
 
 		self.command = command
 
-		self.fieldMagnitude = fieldMagnitude
-		self.inclination = inclination
-		self.declination = declination
 		self.A11 = A11
 		self.A12 = A12
 		self.A13 = A13

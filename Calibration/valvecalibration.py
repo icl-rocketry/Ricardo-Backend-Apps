@@ -68,7 +68,7 @@ if __name__ == "__main__":
         min_limit = input("Minimum angle limit: ")
         max_limit = input("Maximum angle limit: ")
         default = input("Default Angle: ")
-        cmd_packet = ServoCalibration(command = 5, defaultAngle = int(default), minAngle = 0, maxAngle = 180, minWidth = 500, maxWidth = 2500, minAngleLimit = int(min_limit), maxAngleLimit = int(max_limit))
+        cmd_packet = ServoCalibration(command = 5, defaultAngle = int(default), minAngle = 0, maxAngle = 1800, minWidth = 500, maxWidth = 2500, minAngleLimit = int(min_limit), maxAngleLimit = int(max_limit))
         cmd_packet.header.destination_service = int(destination_service)
         cmd_packet.header.source_service = 1
         cmd_packet.header.source = int(source)

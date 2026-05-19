@@ -1,6 +1,4 @@
-import multiprocessing
-import queue
-import requests 
+import requests
 import numpy as np
 from scipy import linalg
 import threading
@@ -15,9 +13,7 @@ import graphui
 
 
 class MagCalibration():
-    def __init__(self,msgQ,server,port,filename:str=''):
-        self.msgQ :multiprocessing.Queue = msgQ
-
+    def __init__(self,server,port,filename:str=''):
         self.networkEnabled = True
 
         self.hostname = socket.gethostname()
@@ -27,7 +23,7 @@ class MagCalibration():
         self.port = port
         self.url = ''
 
-        self.graphui = graphui.MagCalGraphsUI()
+        self.graphui = graphui.MagCalGraphsUI(on_send_calibration=self.on_send_calibration_clicked)
         
         #threading primitives are used here with the socketio background workers
         self.newData = threading.Event()
@@ -40,7 +36,7 @@ class MagCalibration():
         self.b = np.zeros([3,1])
         self.A_1 = np.eye(3)
 
-        if (self.server or self.port) is None:
+        if self.server is None or self.port is None:
             self.networkEnabled = False
             
         else:
@@ -74,7 +70,7 @@ class MagCalibration():
     def calculate(self,verbose):
         magReadings = np.vstack([np.array(self.magData["mx"]),np.array(self.magData["my"]),np.array(self.magData["mz"])])
         num_rows, num_cols = magReadings.shape
-        if num_rows is not 3:
+        if num_rows != 3:
             print("Dimention Error")
             print(magReadings.shape)
             return
@@ -97,86 +93,56 @@ class MagCalibration():
                              "mz":correctedData[2,:].tolist()}
         self.graphui.plotCorrectedData(correctedDataDict)
 
-    
-    def checkMessageQueue(self):
-        try:
-            data = self.msgQ.get(block=False)
-            if type(data) is dict:
-                msg :str = data.get("msg",None)
-                if msg == "STOPDATA":
-                    self.stopData = True
-                elif msg == "STARTDATA":
-                    self.stopData = False
-                elif msg == "CLEARDATA":
-                    self.clearData()
-                    print(self.magData)
-                elif msg == "CALCULATE":
-                    verboseSetting = data.get("verbose",False)
-                    self.stopData = True
-                    self.calculate(verboseSetting)
-                    print("A_1:")
-                    print(self.A_1)
-                    print("b")
-                    print(self.b)
-                elif msg == "SENDCALIBRATION":
-                    if not self.networkEnabled:
-                        print("No Server!")
-                        return
-                    magcalpacket = magpackets.MagCalCommand(command = 61)
-                    magcalpacket.header.destination_service = 2
-                    magcalpacket.header.source = data.get('source',4)
-                    magcalpacket.header.destination = data.get('destination',2)
-                    magcalpacket.fieldMagnitude = data.get('fieldMagnitude',1)
-                    magcalpacket.inclination = data.get('inclination',0)
-                    magcalpacket.declination = data.get('declination',0)
-                    magcalpacket.A11 = self.A_1[0,0]
-                    magcalpacket.A12 = self.A_1[0,1]
-                    magcalpacket.A13 = self.A_1[0,2]
-                    magcalpacket.A21 = self.A_1[1,0]
-                    magcalpacket.A22 = self.A_1[1,1]
-                    magcalpacket.A23 = self.A_1[1,2]
-                    magcalpacket.A31 = self.A_1[2,0]
-                    magcalpacket.A32 = self.A_1[2,1]
-                    magcalpacket.A33 = self.A_1[2,2]
-                    magcalpacket.b1 = self.b[0]
-                    magcalpacket.b2 = self.b[0]
-                    magcalpacket.b3 = self.b[0]
-
-                    send_data = {
-                        "data":magcalpacket.serialize().hex(),
-                        "clientid":self.clientid
-                    }
-                    r = requests.post(self.url,json = send_data)
-                    if r.status_code is not 200:
-                        print("Send Error")
-                        print(r.status_code,r.reason)
-                elif msg == "PRINTCAL":
-                    print("A_1:")
-                    print(self.A_1)
-                    print("b")
-                    print(self.b)
-                elif msg == "VISUALIZE":
-                    self.plotCalibration()
-                elif msg == "LOADDATA":
-                    self.stopData = True
-                    self.filename = data.get("filename",'magdata.csv')
-                    self.__load_data__()
-                elif msg == "SAVEDATA":
-                    self.__save_data__(data.get("filename","magdata.csv"))
-                elif msg == "SAVECAL":
-                    self.__save_cal__(data.get("filename","magcal.txt"))
-                else: 
-                    return
-        except queue.Empty:
+    def send_calibration(self, destination=2, source=4):
+        if not self.networkEnabled:
+            print("No Server — cannot send calibration!")
             return
-    
-        
+        magcalpacket = magpackets.MagCalCommand(command=61)
+        magcalpacket.header.destination_service = 2
+        magcalpacket.header.source = source
+        magcalpacket.header.destination = destination
+        magcalpacket.A11 = float(self.A_1[0,0])
+        magcalpacket.A12 = float(self.A_1[0,1])
+        magcalpacket.A13 = float(self.A_1[0,2])
+        magcalpacket.A21 = float(self.A_1[1,0])
+        magcalpacket.A22 = float(self.A_1[1,1])
+        magcalpacket.A23 = float(self.A_1[1,2])
+        magcalpacket.A31 = float(self.A_1[2,0])
+        magcalpacket.A32 = float(self.A_1[2,1])
+        magcalpacket.A33 = float(self.A_1[2,2])
+        magcalpacket.b1 = float(np.real(self.b[0,0]))
+        magcalpacket.b2 = float(np.real(self.b[1,0]))
+        magcalpacket.b3 = float(np.real(self.b[2,0]))
+        send_data = {"data": magcalpacket.serialize().hex(), "clientid": self.clientid}
+        r = requests.post(self.url, json=send_data)
+        if r.status_code != 200:
+            print(f"Send Error: {r.status_code} {r.reason}")
+        else:
+            print("Calibration sent successfully.")
+
+    def on_send_calibration_clicked(self):
+        if len(self.magData['mx']) < 10:
+            print(f"Not enough data ({len(self.magData['mx'])} points) — keep wiggling!")
+            return
+        self.stopData = True
+        print(f"Calculating calibration from {len(self.magData['mx'])} points...")
+        self.calculate(verbose=False)
+        print(f"A_1:\n{self.A_1}\nb:\n{self.b}")
+        self.plotCalibration()
+        self.send_calibration()
+
     def run(self):
         while True:
             self.graphui.update()
-            self.checkMessageQueue()
             if self.newData.is_set():
-                self.graphui.updateMagField(self.magData)
+                with self._lock:
+                    # take a snapshot so the lock isn't held during rendering
+                    magDataSnapshot = {
+                        "mx": list(self.magData["mx"]),
+                        "my": list(self.magData["my"]),
+                        "mz": list(self.magData["mz"])
+                    }
+                self.graphui.updateMagField(magDataSnapshot)
                 self.newData.clear()
 
     def __ellipsoid_fit__(self, s,verbose=False):
@@ -246,7 +212,7 @@ class MagCalibration():
         with open(self.filename,newline='') as csvfile:
             reader = csv.reader(csvfile)
             numcols = len(list(reader)[0])
-            if numcols is not 3:
+            if numcols != 3:
                 print("Wrong number of Columns!")
                 return
 

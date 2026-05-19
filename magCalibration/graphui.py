@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.widgets import Button
 
 
 class MagCalGraphsUI():
-    def __init__(self):
+    def __init__(self, on_send_calibration=None):
         
         plt.style.use('dark_background')
 
         plt.ion()
-        self.fig = plt.figure(figsize=[8,8])
+        self.fig = plt.figure(figsize=[8,9])
+        self.fig.subplots_adjust(bottom=0.12)
         
 
         self.mxfig = self.fig.add_subplot(2,2,1)
@@ -47,6 +49,12 @@ class MagCalGraphsUI():
         self.myfig_calibrateddata, = self.myfig.plot([],[],marker='+',ls='',color='white')
         self.mzfig_calibrateddata, = self.mzfig.plot([],[],marker='+',ls='',color='white')
         self.fullfig_calibrateddata, = self.fullfig.plot([],[],[],marker='+',ls='',color='magenta')
+
+        ax_btn = self.fig.add_axes([0.3, 0.02, 0.4, 0.06])
+        self.btn_send = Button(ax_btn, 'Send Calibration', color='darkred', hovercolor='firebrick')
+        self.btn_send.label.set_color('white')
+        if on_send_calibration:
+            self.btn_send.on_clicked(lambda _: on_send_calibration())
 
         plt.show(block=False)
 
